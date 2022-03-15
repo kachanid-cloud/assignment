@@ -20,7 +20,8 @@ public class SampleClient {
 
     private static long totalMillis;
 
-    public static void main(String[] theArgs) throws FileNotFoundException {
+    @SuppressWarnings("removal")
+	public static void main(String[] theArgs) throws FileNotFoundException {
 
         StopWatch requestStopWatch = new StopWatch();
         // Create a FHIR client
@@ -58,7 +59,7 @@ public class SampleClient {
                 response = client
                         .search()
                         .forResource("Patient")
-                        .where(Patient.FAMILY.matches().value(line))
+                        .where(Patient.FAMILY.matchesExactly().value(line))
                         .returnBundle(Bundle.class).cacheControl(new CacheControlDirective().setNoCache(hasNoCaching))
                         .execute();
 
@@ -73,13 +74,20 @@ public class SampleClient {
             for (Patient pat : listPatients) {
                 // Birth date printed in YYYY-MM-DD format
                 DateFormat dateFormat = new SimpleDateFormat("yyyy-mm-dd");
-                String strBirthDate = "UNKNOWN";
+                String strBirthDate = "";
                 if (pat.getBirthDate() != null) {
                     strBirthDate = dateFormat.format(pat.getBirthDate());
                 }
-                // given name replacing "," by -
-                String givenName = pat.getName().get(0).getGiven().get(0).getValueAsString().replaceFirst("\",\"", "-");
-                // making sure first name always has a capital letter to start for sorting
+                // given name 
+                String givenName = "";
+                if (pat.getName().get(0).getGiven().size() > 0) {
+                	// take the first given name
+                	givenName = pat.getName().get(0).getGivenAsSingleString().split(" ")[0];
+                } else {
+                // ignore if given name is not returned
+                	continue;
+                }
+                // making sure first name always has a capital letter to start for sorting 
                 String strToAdd = givenName.replace(givenName.charAt(0), givenName.toUpperCase().substring(0, 1).charAt(0)) + " " + pat.getName().get(0).getFamily() + " " + strBirthDate;
                 // making sure no duplicates added to printing list
                 if (!printPatients.contains(strToAdd)) {
